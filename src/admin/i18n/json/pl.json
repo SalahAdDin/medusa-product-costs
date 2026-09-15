@@ -75,6 +75,36 @@
       "importErrorsHeading": "Liczba niezaimportowanych wierszy: {{count}}",
       "importErrorLinePrefix": "Wiersz"
     },
+    "entityCard": {
+      "heading": "Koszt",
+      "vatNotSet": "VAT nieustawiony",
+      "vatPercent": "VAT {{percent}}%",
+      "historyButton": "Historia",
+      "editButton": "Edytuj",
+      "setCostButton": "Ustaw koszt",
+      "noCostSet": "Brak kosztu",
+      "netCost": "Koszt netto",
+      "grossCost": "Brutto (próg rentowności)",
+      "sellPrice": "Cena sprzedaży",
+      "margin": "Marża",
+      "noVatHint": "Skonfiguruj stawkę VAT w ustawieniach kosztów produktów, aby zobaczyć koszt brutto i marżę.",
+      "noSellPriceHint": "Ustaw cenę sprzedaży w {{currency}}, aby zobaczyć marżę.",
+      "lastUpdated": "Ostatnia aktualizacja",
+      "save": "Zapisz",
+      "cancel": "Anuluj",
+      "grossPreview": "Brutto (próg rentowności): {{amount}} {{currency}}",
+      "historyTitle": "Historia kosztu dla {{entityId}}",
+      "noHistory": "Brak historii",
+      "historyColumns": {
+        "cost": "Koszt",
+        "source": "Źródło",
+        "changedBy": "Zmienił/a",
+        "changedAt": "Data zmiany"
+      },
+      "invalidCostError": "Podaj prawidłowy, dodatni koszt",
+      "savedCost": "Koszt zapisany",
+      "saveError": "Nie udało się zapisać kosztu"
+    },
     "catalogColumn": {
       "header": "Cena zakupu",
       "error": "błąd",

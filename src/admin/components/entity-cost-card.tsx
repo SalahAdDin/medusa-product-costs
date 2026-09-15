@@ -10,11 +10,19 @@ import {
   toast,
 } from "@medusajs/ui";
 import { useEffect, useState } from "react";
-import { parseInputCost } from "../lib/format";
+import { useTranslation } from "react-i18next";
 
-// Read the JWT the Medusa admin stores in localStorage and send it as Bearer.
-// Also sets credentials:"include" so session cookies travel alongside,
-// covering both JWT-based and session-based admin auth setups.
+const interpolate = (template: string, values: Record<string, string | number>): string =>
+  Object.entries(values).reduce(
+    (result, [key, value]) => result.split(`{{${key}}}`).join(String(value)),
+    template,
+  );
+
+function parseInputCost(raw: string): number | undefined {
+  const value = Number.parseFloat(raw.replace(",", "."));
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
 function authHeaders(): Record<string, string> {
   try {
     const token = localStorage.getItem("medusa_auth_token");
@@ -83,19 +91,19 @@ interface PriceEntry {
   rules?: Record<string, string>;
 }
 
+interface EntityCostCardProps {
+  entityId: string;
+  prices?: PriceEntry[] | null;
+}
+
 /**
  * Self-contained cost card for custom entity detail pages.
  * Pass the entity ID as `entityId` — it is used directly as the cost SKU.
  * Pass the entity's `price_set.prices` as `prices` to enable margin calculation.
- * Requires the plugin to be configured with `skipVariantLinking: true`.
+ * Use it for custom product entities, with the plugin to be configured with `skipVariantLinking: true`.
  */
-const EntityCostCard = ({
-  entityId,
-  prices,
-}: {
-  entityId: string;
-  prices?: PriceEntry[] | null;
-}) => {
+const EntityCostCard = ({ entityId, prices }: EntityCostCardProps) => {
+  const { t } = useTranslation();
   const [cost, setCost] = useState<CostPriceRow | null | undefined>(undefined);
   const [currency, setCurrency] = useState<string>("—");
   const [vatRate, setVatRate] = useState<number | null>(null);
@@ -180,7 +188,7 @@ const EntityCostCard = ({
   const handleSave = async () => {
     const parsed = parseInputCost(inputValue);
     if (!parsed) {
-      toast.error("Enter a valid positive cost");
+      toast.error(t("productCosts.entityCard.invalidCostError"));
       return;
     }
     setSaving(true);
@@ -189,12 +197,12 @@ const EntityCostCard = ({
         method: "POST",
         body: JSON.stringify({ sku: entityId, unit_cost_net: parsed, source: "manual" }),
       });
-      toast.success("Cost saved");
+      toast.success(t("productCosts.entityCard.savedCost"));
       setEditing(false);
       setInputValue("");
       await load();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to save cost");
+      toast.error(err instanceof Error ? err.message : t("productCosts.entityCard.saveError"));
     } finally {
       setSaving(false);
     }
@@ -210,7 +218,11 @@ const EntityCostCard = ({
   })();
 
   const vatLabel =
-    vatRate !== null ? `VAT ${Math.round(vatRate * 100)}%` : "VAT not set";
+    vatRate !== null
+      ? interpolate(t("productCosts.entityCard.vatPercent"), {
+          percent: Math.round(vatRate * 100),
+        })
+      : t("productCosts.entityCard.vatNotSet");
 
   const marginColor =
     marginPct === undefined ? "grey" : marginPct >= 0 ? "green" : "red";
@@ -221,7 +233,7 @@ const EntityCostCard = ({
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex flex-col gap-y-0.5">
             <Heading level="h2" className="text-ui-fg-base">
-              Cost
+              {t("productCosts.entityCard.heading")}
             </Heading>
             {vatRate !== null && (
               <Text className="text-ui-fg-subtle text-xs">{vatLabel} · {currency}</Text>
@@ -230,10 +242,12 @@ const EntityCostCard = ({
           {!isLoading && !editing && (
             <div className="flex items-center gap-x-2">
               <Button variant="transparent" size="small" onClick={handleOpenHistory}>
-                History
+                {t("productCosts.entityCard.historyButton")}
               </Button>
               <Button variant="secondary" size="small" onClick={handleEdit}>
-                {cost ? "Edit" : "Set cost"}
+                {cost
+                  ? t("productCosts.entityCard.editButton")
+                  : t("productCosts.entityCard.setCostButton")}
               </Button>
             </div>
           )}
@@ -241,20 +255,20 @@ const EntityCostCard = ({
 
         {isLoading && (
           <div className="px-6 py-4">
-            <Text className="text-ui-fg-subtle text-sm">Loading…</Text>
+            <Text className="text-ui-fg-subtle text-sm">{t("productCosts.common.loading")}</Text>
           </div>
         )}
 
         {!isLoading && !editing && !cost && (
           <div className="px-6 py-4">
-            <Text className="text-ui-fg-subtle text-sm">No cost set</Text>
+            <Text className="text-ui-fg-subtle text-sm">{t("productCosts.entityCard.noCostSet")}</Text>
           </div>
         )}
 
         {!isLoading && !editing && cost && (
           <>
             <div className="flex items-center justify-between px-6 py-3">
-              <Text className="text-ui-fg-subtle text-sm">Net cost</Text>
+              <Text className="text-ui-fg-subtle text-sm">{t("productCosts.entityCard.netCost")}</Text>
               <div className="flex items-center gap-x-2">
                 <Text className="text-ui-fg-base text-sm font-medium">
                   {cost.unit_cost_net.toFixed(2)}
@@ -267,7 +281,7 @@ const EntityCostCard = ({
 
             {grossCost !== undefined && (
               <div className="flex items-center justify-between px-6 py-3">
-                <Text className="text-ui-fg-subtle text-sm">Gross (break-even)</Text>
+                <Text className="text-ui-fg-subtle text-sm">{t("productCosts.entityCard.grossCost")}</Text>
                 <div className="flex items-center gap-x-2">
                   <Text className="text-ui-fg-base text-sm font-medium">
                     {grossCost.toFixed(2)}
@@ -281,7 +295,7 @@ const EntityCostCard = ({
 
             {srp !== undefined && (
               <div className="flex items-center justify-between px-6 py-3">
-                <Text className="text-ui-fg-subtle text-sm">Sell price</Text>
+                <Text className="text-ui-fg-subtle text-sm">{t("productCosts.entityCard.sellPrice")}</Text>
                 <div className="flex items-center gap-x-2">
                   <Text className="text-ui-fg-base text-sm font-medium">
                     {srp.toFixed(2)}
@@ -295,7 +309,7 @@ const EntityCostCard = ({
 
             {marginPct !== undefined && netIncome !== undefined && (
               <div className="flex items-center justify-between px-6 py-3">
-                <Text className="text-ui-fg-subtle text-sm">Margin</Text>
+                <Text className="text-ui-fg-subtle text-sm">{t("productCosts.entityCard.margin")}</Text>
                 <Badge size="2xsmall" color={marginColor}>
                   {marginPct.toFixed(1)}% ({netIncome.toFixed(2)} {currency})
                 </Badge>
@@ -305,7 +319,7 @@ const EntityCostCard = ({
             {grossCost === undefined && vatRate === null && (
               <div className="px-6 py-3">
                 <Text className="text-ui-fg-muted text-xs">
-                  Configure a VAT rate in product costs settings to see gross cost and margin.
+                  {t("productCosts.entityCard.noVatHint")}
                 </Text>
               </div>
             )}
@@ -313,13 +327,13 @@ const EntityCostCard = ({
             {srp === undefined && grossCost !== undefined && (
               <div className="px-6 py-3">
                 <Text className="text-ui-fg-muted text-xs">
-                  Set a sell price in {currency} to see margin.
+                  {interpolate(t("productCosts.entityCard.noSellPriceHint"), { currency })}
                 </Text>
               </div>
             )}
 
             <div className="flex items-center justify-between px-6 py-3">
-              <Text className="text-ui-fg-subtle text-sm">Last updated</Text>
+              <Text className="text-ui-fg-subtle text-sm">{t("productCosts.entityCard.lastUpdated")}</Text>
               <Text className="text-ui-fg-base text-sm">
                 {new Date(cost.updated_at).toLocaleDateString(undefined, {
                   day: "numeric",
@@ -345,7 +359,7 @@ const EntityCostCard = ({
                 />
               </div>
               <Button size="small" onClick={handleSave} isLoading={saving}>
-                Save
+                {t("productCosts.entityCard.save")}
               </Button>
               <Button
                 variant="secondary"
@@ -353,12 +367,15 @@ const EntityCostCard = ({
                 onClick={handleCancel}
                 disabled={saving}
               >
-                Cancel
+                {t("productCosts.entityCard.cancel")}
               </Button>
             </div>
             {previewGross !== undefined && (
               <Text className="text-ui-fg-subtle text-xs">
-                Gross (break-even): {previewGross.toFixed(2)} {currency}
+                {interpolate(t("productCosts.entityCard.grossPreview"), {
+                  amount: previewGross.toFixed(2),
+                  currency,
+                })}
               </Text>
             )}
           </div>
@@ -368,27 +385,29 @@ const EntityCostCard = ({
       <Drawer open={historyOpen} onOpenChange={setHistoryOpen}>
         <Drawer.Content>
           <Drawer.Header>
-            <Drawer.Title>Cost history for {entityId}</Drawer.Title>
+            <Drawer.Title>
+              {interpolate(t("productCosts.entityCard.historyTitle"), { entityId })}
+            </Drawer.Title>
           </Drawer.Header>
           <Drawer.Body className="overflow-y-auto p-0">
             {historyLoading && (
               <div className="px-6 py-4">
-                <Text className="text-ui-fg-subtle text-sm">Loading…</Text>
+                <Text className="text-ui-fg-subtle text-sm">{t("productCosts.common.loading")}</Text>
               </div>
             )}
             {!historyLoading && history.length === 0 && (
               <div className="px-6 py-4">
-                <Text className="text-ui-fg-subtle text-sm">No history yet</Text>
+                <Text className="text-ui-fg-subtle text-sm">{t("productCosts.entityCard.noHistory")}</Text>
               </div>
             )}
             {!historyLoading && history.length > 0 && (
               <Table>
                 <Table.Header>
                   <Table.Row>
-                    <Table.HeaderCell>Cost</Table.HeaderCell>
-                    <Table.HeaderCell>Source</Table.HeaderCell>
-                    <Table.HeaderCell>Changed by</Table.HeaderCell>
-                    <Table.HeaderCell>Changed at</Table.HeaderCell>
+                    <Table.HeaderCell>{t("productCosts.entityCard.historyColumns.cost")}</Table.HeaderCell>
+                    <Table.HeaderCell>{t("productCosts.entityCard.historyColumns.source")}</Table.HeaderCell>
+                    <Table.HeaderCell>{t("productCosts.entityCard.historyColumns.changedBy")}</Table.HeaderCell>
+                    <Table.HeaderCell>{t("productCosts.entityCard.historyColumns.changedAt")}</Table.HeaderCell>
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
