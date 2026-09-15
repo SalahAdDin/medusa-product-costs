@@ -585,10 +585,24 @@ The standard product-page widget does not render on custom admin pages. Use `Ent
 import EntityCostCard from "@zanreal/medusa-product-costs/admin/components/entity-cost-card"
 
 // in your custom detail page sidebar:
-<EntityCostCard entityId={flight.id} />
+<EntityCostCard
+  entityId={accommodation.id}
+  prices={accommodation.price_set?.prices}   // optional — enables margin display
+/>
 ```
 
-The card handles loading state, displays net cost and currency, and provides an inline edit form. It does not depend on `@zanreal/medusa-admin-kit` or any standard Medusa product types.
+`prices` accepts the raw `price_set.prices` array from your entity. The card picks the base price (no region rule) in the cost's currency and uses it to compute margin. Omit it when your entity has no price data; the card still shows cost and gross.
+
+The card provides:
+
+- **Net cost** with currency badge, and **gross (break-even)** once a VAT rate is configured.
+- **Sell price**, **margin %**, and **net income** — color-coded green/red — when a matching price exists in `prices`.
+- A **live gross preview** while typing a new cost.
+- Hint messages when VAT is not yet configured or no price in the cost currency is found.
+- A **cost history drawer** (the same append-only log the product widget shows).
+- Full localization via the plugin's own `en.json` / `pl.json` translation files.
+
+It does not depend on `@zanreal/medusa-admin-kit` or any standard Medusa product types.
 
 ## Roadmap
 
