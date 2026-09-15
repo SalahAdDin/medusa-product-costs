@@ -29,6 +29,20 @@ export interface ProductCostsModuleOptions {
    * nothing downstream can tell a mislabelled row from a correct one.
    */
   defaultCurrency?: string;
+  /**
+   * When `true`, SKU-to-variant resolution is bypassed entirely. Every
+   * `CostPrice` row is stored with `variant_id: null` and no module link
+   * to `ProductVariant` is ever created or synced.
+   *
+   * Use this when your "products" are custom domain entities that do not
+   * use Medusa's standard `ProductVariant` model — for example, Flights,
+   * Accommodations, Activities, or any other domain-specific entity where
+   * the SKU lives on your own model rather than on a `ProductVariant`.
+   *
+   * Defaults to `false` (standard behaviour: resolve each SKU against the
+   * product module and maintain the `CostPrice ↔ ProductVariant` link).
+   */
+  skipVariantLinking?: boolean;
 }
 
 export interface ResolvedProductCostsModuleOptions {
@@ -36,6 +50,8 @@ export interface ResolvedProductCostsModuleOptions {
   vatRate: number | null;
   /** `null` when no currency is configured. Not a value to store - see `CURRENCY_NOT_CONFIGURED_MESSAGE`. */
   defaultCurrency: string | null;
+  /** Whether variant-link resolution is disabled. See `ProductCostsModuleOptions.skipVariantLinking`. */
+  skipVariantLinking: boolean;
 }
 
 /** The one message every "no VAT rate configured" refusal uses, so they cannot drift apart. */
@@ -52,6 +68,7 @@ export function resolveModuleOptions(
   const currency = options?.defaultCurrency?.trim().toUpperCase();
   return {
     defaultCurrency: currency ? currency : null,
+    skipVariantLinking: options?.skipVariantLinking === true,
     vatRate: typeof options?.vatRate === "number" ? options.vatRate : null,
   };
 }
