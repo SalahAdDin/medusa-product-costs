@@ -198,6 +198,7 @@ class ProductCostsModuleService extends MedusaService({
     return {
       defaultCurrency: settings.default_currency ?? this.moduleOptions_.defaultCurrency,
       vatRate: settings.vat_rate ?? this.moduleOptions_.vatRate,
+      skipVariantLinking: this.moduleOptions_.skipVariantLinking,
     };
   }
 

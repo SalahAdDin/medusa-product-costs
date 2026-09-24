@@ -2,6 +2,8 @@ import type { StepExecutionContext } from "@medusajs/framework/workflows-sdk";
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
 import { Modules } from "@medusajs/framework/utils";
 import type { IProductModuleService } from "@medusajs/framework/types";
+import { PRODUCT_COSTS_MODULE } from "../../modules/product-costs";
+import type ProductCostsModuleService from "../../modules/product-costs/service";
 
 export interface ResolveVariantIdsBulkInput {
   skus: string[];
@@ -38,6 +40,13 @@ export async function resolveVariantIdsBulk(
   { container }: Pick<StepExecutionContext, "container">,
 ): Promise<ResolveVariantIdsBulkOutput> {
   if (input.skus.length === 0) {
+    return { bySku: {}, duplicates: {} };
+  }
+
+  const costsService = container.resolve<ProductCostsModuleService>(PRODUCT_COSTS_MODULE, {
+    allowUnregistered: true,
+  });
+  if (costsService?.moduleOptions?.skipVariantLinking) {
     return { bySku: {}, duplicates: {} };
   }
 

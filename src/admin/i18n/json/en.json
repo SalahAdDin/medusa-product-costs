@@ -75,6 +75,36 @@
       "importErrorsHeading": "{{count}} row(s) could not be imported:",
       "importErrorLinePrefix": "Line"
     },
+    "entityCard": {
+      "heading": "Cost",
+      "vatNotSet": "VAT not set",
+      "vatPercent": "VAT {{percent}}%",
+      "historyButton": "History",
+      "editButton": "Edit",
+      "setCostButton": "Set cost",
+      "noCostSet": "No cost set",
+      "netCost": "Net cost",
+      "grossCost": "Gross (break-even)",
+      "sellPrice": "Sell price",
+      "margin": "Margin",
+      "noVatHint": "Configure a VAT rate in product costs settings to see gross cost and margin.",
+      "noSellPriceHint": "Set a sell price in {{currency}} to see margin.",
+      "lastUpdated": "Last updated",
+      "save": "Save",
+      "cancel": "Cancel",
+      "grossPreview": "Gross (break-even): {{amount}} {{currency}}",
+      "historyTitle": "Cost history for {{entityId}}",
+      "noHistory": "No history yet",
+      "historyColumns": {
+        "cost": "Cost",
+        "source": "Source",
+        "changedBy": "Changed by",
+        "changedAt": "Changed at"
+      },
+      "invalidCostError": "Enter a valid positive cost",
+      "savedCost": "Cost saved",
+      "saveError": "Failed to save cost"
+    },
     "catalogColumn": {
       "header": "Purchase cost",
       "error": "error",

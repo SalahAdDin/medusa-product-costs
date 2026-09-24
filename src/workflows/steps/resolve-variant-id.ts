@@ -2,6 +2,8 @@ import type { StepExecutionContext } from "@medusajs/framework/workflows-sdk";
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
 import { Modules } from "@medusajs/framework/utils";
 import type { IProductModuleService } from "@medusajs/framework/types";
+import { PRODUCT_COSTS_MODULE } from "../../modules/product-costs";
+import type ProductCostsModuleService from "../../modules/product-costs/service";
 
 export interface ResolveVariantIdBySkuInput {
   sku: string;
@@ -39,6 +41,13 @@ export async function resolveVariantIdBySku(
   input: ResolveVariantIdBySkuInput,
   { container }: Pick<StepExecutionContext, "container">,
 ): Promise<ResolveVariantIdBySkuOutput> {
+  const costsService = container.resolve<ProductCostsModuleService>(PRODUCT_COSTS_MODULE, {
+    allowUnregistered: true,
+  });
+  if (costsService?.moduleOptions?.skipVariantLinking) {
+    return { duplicateMatches: 0, variantId: null };
+  }
+
   const productModuleService: IProductModuleService = container.resolve(Modules.PRODUCT);
   // Ordered by id ascending so that if more than one variant carries this
   // SKU, the same one wins on every run - not whatever order the database

@@ -128,10 +128,11 @@ npx medusa db:migrate
 
 ## Options
 
-| Option            | Type     | Default | Description                                                       |
-| ----------------- | -------- | ------- | ----------------------------------------------------------------- |
-| `vatRate`         | `number` | none    | VAT rate as a fraction (`0.2` = 20%, `0` = none), used to gross up a net cost. **No default** - see below. |
-| `defaultCurrency` | `string` | none    | ISO-4217 currency recorded on a cost when the caller does not specify one. **No default** - see below. |
+| Option                | Type      | Default | Description                                                       |
+| --------------------- | --------- | ------- | ----------------------------------------------------------------- |
+| `vatRate`             | `number`  | none    | VAT rate as a fraction (`0.2` = 20%, `0` = none), used to gross up a net cost. **No default** - see below. |
+| `defaultCurrency`     | `string`  | none    | ISO-4217 currency recorded on a cost when the caller does not specify one. **No default** - see below. |
+| `skipVariantLinking`  | `boolean` | `false` | When `true`, skip SKU→`ProductVariant` resolution entirely. Every `CostPrice` is stored with `variant_id: null` and no module link is created. Use this when your products are custom domain entities that do not use Medusa's standard `ProductVariant` model. |
 
 ### No default VAT rate and no default currency
 
@@ -551,6 +552,57 @@ globals, this project's test runner is Vitest, and CI has no database service co
 DB-backed test would not run there and would make the local `pnpm test` gate depend on Docker
 being available. If this module ever moves to Jest, or CI grows a Postgres service, this is the
 test to add.
+
+## Custom entity support
+
+If your "products" are custom domain entities — Flights, Accommodations, Activities, or any other model that does not use Medusa's standard `ProductVariant` — enable `skipVariantLinking: true` and use the entity ID directly as the SKU. This plugin provides two building blocks to complete the integration.
+
+### Orphan cleanup — `deleteCostPriceBySkuStep`
+
+When a custom entity is deleted its `CostPrice` record would normally be left behind, because there is no module link to cascade the delete. The plugin exports a ready-made workflow step you can compose into your own delete workflows:
+
+```ts
+import { deleteCostPriceBySkuStep } from "@zanreal/medusa-product-costs/workflows"
+import { createWorkflow, WorkflowResponse } from "@medusajs/framework/workflows-sdk"
+
+export const deleteFlightWorkflow = createWorkflow(
+  "delete-flight",
+  (input: { id: string }) => {
+    deleteCostPriceBySkuStep({ sku: input.id })
+    deleteFlightStep(input)
+    return new WorkflowResponse(void 0)
+  }
+)
+```
+
+`deleteCostPriceBySkuStep` is a no-op when no cost record exists for that SKU, and its compensation function restores the deleted record if a later step in the workflow rolls back — so the cost comes back if the entity deletion itself fails.
+
+### Admin UI — `EntityCostCard`
+
+The standard product-page widget does not render on custom admin pages. Use `EntityCostCard` instead — a self-contained React component that fetches and edits cost data for any entity ID:
+
+```tsx
+import EntityCostCard from "@zanreal/medusa-product-costs/admin/components/entity-cost-card"
+
+// in your custom detail page sidebar:
+<EntityCostCard
+  entityId={accommodation.id}
+  prices={accommodation.price_set?.prices}   // optional — enables margin display
+/>
+```
+
+`prices` accepts the raw `price_set.prices` array from your entity. The card picks the base price (no region rule) in the cost's currency and uses it to compute margin. Omit it when your entity has no price data; the card still shows cost and gross.
+
+The card provides:
+
+- **Net cost** with currency badge, and **gross (break-even)** once a VAT rate is configured.
+- **Sell price**, **margin %**, and **net income** — color-coded green/red — when a matching price exists in `prices`.
+- A **live gross preview** while typing a new cost.
+- Hint messages when VAT is not yet configured or no price in the cost currency is found.
+- A **cost history drawer** (the same append-only log the product widget shows).
+- Full localization via the plugin's own `en.json` / `pl.json` translation files.
+
+It does not depend on `@zanreal/medusa-admin-kit` or any standard Medusa product types.
 
 ## Roadmap
 
